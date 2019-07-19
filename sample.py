@@ -1,34 +1,43 @@
 import os
 import docker
+import sys
 
-client = docker.DockerClient(base_url='tcp://127.0.0.1:2375')
-volumes= ['/home/aditya/Documents/docker']
-volume_bindings = {
-                    '/home/aditya/Documents/docker': {
-                        'bind': '/shared',
-                        'mode': 'rw',
-                    },
-}
+abspath = os.path.abspath(os.path.dirname(__file__))
+middleware = os.path.dirname(abspath)
+cadre_rac = os.path.dirname(middleware)
+util = cadre_rac + '/util'
+sys.path.append(cadre_rac)
 
-# We are building the docker image from the dockerfile here
-image = client.images.build(path='/home/aditya/Documents/myimages5/', tag='sample_test', forcerm=True)
-print(os.getcwd())
-print("The image has been built successfully. ")
-# Create a container and run a command in the container
-container = client.containers.run('sample_test',
-                                  detach=True,
-                                  volumes={os.getcwd(): {'bind':'/tmp/', 'mode':'rw'}},
-                                  command='python script.py /home/aditya/Documents/myimages5/CadreQueryResult/guptaadi/ef28311e-aba1-4e82-badf-7761ad7c659d.csv',
-                                  remove=True)
-print(container.logs())
-print('The output of the file has been copied successfully outside the docker container')
+import util.config_reader
 
-# Delete the docker container
-print('The container has been removed successfully.')
+def functionToRunScriptOnDocker(filepath):
+    client = docker.DockerClient(base_url='tcp://127.0.0.1:2375')
 
-# Delete the docker image
-client.images.remove('sample_test', force=True)
-print('The image has been removed successfully.')
+    # We are building the docker image from the dockerfile here
+    image = client.images.build(path='%s' % util.config_reader.get_docker_path(), tag='sample_test', forcerm=True)
+    print(os.getcwd())
+    print("The image has been built successfully. ")
+    # Create a container and run a command in the container
+    container = client.containers.run('sample_test',
+                                    detach=True,
+                                    volumes={os.getcwd(): {'bind':'/tmp/', 'mode':'rw'}},
+                                    command='python script.py %s' % filepath,
+                                    remove=True)
+    print(container.logs())
+    print('The output of the file has been copied successfully outside the docker container')
 
-# Deleting the unused images
-client.images.prune()
+    # Delete the docker container
+    # client.containers.remove('sample_test', force=True)
+    print('The container has been removed successfully.')
+
+    # Delete the docker image
+    client.images.remove('sample_test', force=True)
+    print('The image has been removed successfully.')
+
+    # Deleting the unused images
+    # args = {"dangling": True}
+    client.images.prune()
+
+
+if __name__== "__main__":
+    functionToRunScriptOnDocker(sys.argv[1])
