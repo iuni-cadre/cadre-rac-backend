@@ -1,5 +1,7 @@
 FROM python:alpine3.8
 WORKDIR /usr/local/bin
-COPY script.py .
+# Define the ENV variable
+ENV PYTHONUNBUFFERED=1
+COPY script1.py .
 EXPOSE 80
-ENTRYPOINT ["python", "script.py"]
+ENTRYPOINT ["python", "-u", "script1.py"]

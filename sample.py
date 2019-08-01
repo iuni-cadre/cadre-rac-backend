@@ -58,8 +58,9 @@ def functionToRunScriptOnDocker(inputFileList, outputFileList):
     print(s3_location)
     i = 0
     for files in outputFileList:
-        s3_client.meta.client.upload_file('%s' % outputFileList[i], root_bucket_name, username + '/' + '%s' % outputFileList[i])
+        s3_client.meta.client.upload_file('/tmp/%s' % outputFileList[i], root_bucket_name, username + '/tools/' + '%s' % outputFileList[i])
         i = i + 1
+    
 
 if __name__== "__main__":
     inputFileList = sys.argv[1].strip().split(',')
