@@ -33,3 +33,47 @@ def get_docker_path():
         traceback.print_tb(e.__traceback__)
         logger.error('Unable to find cadre_rac.config file. Make sure you have cadre_rac.config inside conf directory !')
         raise Exception('Unable to find cadre_rac.config file !')
+
+def get_aws_access_key():
+    try:
+        config = get_cadre_rac_config()
+        access_key = config['AWS']['aws_access_key_id']
+        return access_key
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre_rac.config file. Make sure you have cadre_rac.config inside conf directory !')
+        raise Exception('Unable to find cadre_rac.config file !')
+
+
+def get_aws_secret_access_key():
+    try:
+        config = get_cadre_rac_config()
+        access_key_secret = config['AWS']['aws_secret_access_key']
+        return access_key_secret
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre_rac.config file. Make sure you have cadre_rac.config inside conf directory !')
+        raise Exception('Unable to find cadre_rac.config file !')
+
+
+def get_aws_region():
+    try:
+        config = get_cadre_rac_config()
+        region_name = config['AWS']['region_name']
+        return region_name
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre_rac.config file. Make sure you have cadre_rac.config inside conf directory !')
+        raise Exception('Unable to find cadre_rac.config file !')
+
+
+def get_aws_s3_root():
+    try:
+        config = get_cadre_rac_config()
+        s3_root = config['AWS']['s3_root_dir']
+        return s3_root
+    except Exception as e:
+        traceback.print_tb(e.__traceback__)
+        logger.error('Unable to find cadre_rac.config file. Make sure you have cadre_rac.config inside conf directory !')
+        raise Exception('Unable to find cadre_rac.config file !')
+

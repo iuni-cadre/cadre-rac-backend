@@ -1,6 +1,7 @@
 import os
 import docker
 import sys
+import boto3
 
 abspath = os.path.abspath(os.path.dirname(__file__))
 middleware = os.path.dirname(abspath)
@@ -10,7 +11,7 @@ sys.path.append(cadre_rac)
 
 import util.config_reader
 
-def functionToRunScriptOnDocker(filepath):
+def functionToRunScriptOnDocker(inputFileList, outputFileList):
     client = docker.DockerClient(base_url='tcp://127.0.0.1:2375')
 
     # We are building the docker image from the dockerfile here
@@ -18,11 +19,15 @@ def functionToRunScriptOnDocker(filepath):
     print(os.getcwd())
     print("The image has been built successfully. ")
     # Create a container and run a command in the container
+    print(inputFileList) 
+    inputString = ",".join(inputFileList)
+    print(inputString)
+
     container = client.containers.run('sample_test',
-                                    detach=True,
-                                    volumes={os.getcwd(): {'bind':'/tmp/', 'mode':'rw'}},
-                                    command='python script.py %s' % filepath,
-                                    remove=True)
+                                      detach=True,
+                                      volumes={'/tmp/': {'bind':'/tmp/', 'mode':'rw'}},
+                                      command='python3 script1.py %s' % inputString,
+                                      remove=True)                        
     print(container.logs())
     print('The output of the file has been copied successfully outside the docker container')
 
@@ -38,6 +43,25 @@ def functionToRunScriptOnDocker(filepath):
     # args = {"dangling": True}
     client.images.prune()
 
+    username = 'guptaadi'
+    s3_job_dir = username + '/'
+    s3_client = boto3.resource('s3',
+                               aws_access_key_id=util.config_reader.get_aws_access_key(),
+                               aws_secret_access_key=util.config_reader.get_aws_secret_access_key(),
+                               region_name=util.config_reader.get_aws_region())
+    root_bucket_name = util.config_reader.get_aws_s3_root()
+    print(root_bucket_name)
+    root_bucket = s3_client.Bucket(root_bucket_name)
+    bucket_job_id = root_bucket_name + '/' + s3_job_dir
+    print("Bucket Job ID: " + bucket_job_id)
+    s3_location = 's3://' + bucket_job_id
+    print(s3_location)
+    i = 0
+    for files in outputFileList:
+        s3_client.meta.client.upload_file('%s' % outputFileList[i], root_bucket_name, username + '/' + '%s' % outputFileList[i])
+        i = i + 1
 
 if __name__== "__main__":
-    functionToRunScriptOnDocker(sys.argv[1])
+    inputFileList = sys.argv[1].strip().split(',')
+    outputFileList = sys.argv[2].strip().split(',')
+    functionToRunScriptOnDocker(inputFileList, outputFileList)
