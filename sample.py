@@ -11,7 +11,7 @@ sys.path.append(cadre_rac)
 
 import util.config_reader
 
-def functionToRunScriptOnDocker(inputFileList, outputFileList):
+def functionToRunScriptOnDocker(inputFileList, outputFileList, username):
     client = docker.DockerClient(base_url='tcp://127.0.0.1:2375')
 
     # We are building the docker image from the dockerfile here
@@ -22,12 +22,20 @@ def functionToRunScriptOnDocker(inputFileList, outputFileList):
     print(inputFileList) 
     inputString = ",".join(inputFileList)
     print(inputString)
+    
+    print(outputFileList)
+    outputString = ",".join(outputFileList)
+    print(outputString)
+
+    commandList = ["python3", "script1.py", inputString, outputString]
+    print(commandList)
 
     container = client.containers.run('sample_test',
                                       detach=True,
                                       volumes={'/tmp/': {'bind':'/tmp/', 'mode':'rw'}},
-                                      command='python3 script1.py %s' % inputString,
-                                      remove=True)                        
+                                      command=commandList,
+                                      remove=True)
+    
     print(container.logs())
     print('The output of the file has been copied successfully outside the docker container')
 
@@ -43,7 +51,7 @@ def functionToRunScriptOnDocker(inputFileList, outputFileList):
     # args = {"dangling": True}
     client.images.prune()
 
-    username = 'guptaadi'
+    # username = 'guptaadi'
     s3_job_dir = username + '/'
     s3_client = boto3.resource('s3',
                                aws_access_key_id=util.config_reader.get_aws_access_key(),
@@ -65,4 +73,5 @@ def functionToRunScriptOnDocker(inputFileList, outputFileList):
 if __name__== "__main__":
     inputFileList = sys.argv[1].strip().split(',')
     outputFileList = sys.argv[2].strip().split(',')
-    functionToRunScriptOnDocker(inputFileList, outputFileList)
+    userName = sys.argv[3]
+    functionToRunScriptOnDocker(inputFileList, outputFileList, userName)
