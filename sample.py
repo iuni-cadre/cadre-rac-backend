@@ -2,6 +2,8 @@ import os
 import docker
 import sys
 import boto3
+from shutil import copyfile
+import ntpath
 
 abspath = os.path.abspath(os.path.dirname(__file__))
 middleware = os.path.dirname(abspath)
@@ -11,7 +13,7 @@ sys.path.append(cadre_rac)
 
 import util.config_reader
 
-def functionToRunScriptOnDocker(inputFileList, outputFileList, username):
+def run_docker_script(input_file_list, output_file_list):
     client = docker.DockerClient(base_url='tcp://127.0.0.1:2375')
 
     # We are building the docker image from the dockerfile here
@@ -19,21 +21,28 @@ def functionToRunScriptOnDocker(inputFileList, outputFileList, username):
     print(os.getcwd())
     print("The image has been built successfully. ")
     # Create a container and run a command in the container
-    print(inputFileList) 
-    inputString = ",".join(inputFileList)
+    print(input_file_list)
+    inputString = ",".join(input_file_list)
     print(inputString)
-    
-    print(outputFileList)
-    outputString = ",".join(outputFileList)
-    print(outputString)
 
-    commandList = ["python3", "script1.py", inputString, outputString]
-    print(commandList)
+    shared_volume = '/tmp'
+
+    print(output_file_list)
+    outputString = ",".join(output_file_list)
+    print(outputString)
+    command_list = ["python3", "script1.py"]
+    for inputFile in input_file_list:
+        file_name = ntpath.basename(inputFile)
+        file_name_for_image = shared_volume + '/' + file_name
+        copyfile(inputFile, file_name_for_image)
+        command_list.append(file_name_for_image)
+
+    print(command_list)
 
     container = client.containers.run('sample_test',
                                       detach=True,
-                                      volumes={'/tmp/': {'bind':'/tmp/', 'mode':'rw'}},
-                                      command=commandList,
+                                      volumes={shared_volume: {'bind':'/tmp/', 'mode':'rw'}},
+                                      command=command_list,
                                       remove=True)
     
     print(container.logs())
@@ -52,7 +61,7 @@ def functionToRunScriptOnDocker(inputFileList, outputFileList, username):
     client.images.prune()
 
     # username = 'guptaadi'
-    s3_job_dir = username + '/'
+    s3_job_dir = 'cpelikan/'
     s3_client = boto3.resource('s3',
                                aws_access_key_id=util.config_reader.get_aws_access_key(),
                                aws_secret_access_key=util.config_reader.get_aws_secret_access_key(),
@@ -65,13 +74,13 @@ def functionToRunScriptOnDocker(inputFileList, outputFileList, username):
     s3_location = 's3://' + bucket_job_id
     print(s3_location)
     i = 0
-    for files in outputFileList:
-        s3_client.meta.client.upload_file('/tmp/%s' % outputFileList[i], root_bucket_name, username + '/tools/' + '%s' % outputFileList[i])
+    for files in output_file_list:
+        s3_client.meta.client.upload_file('/tmp/%s' % output_file_list[i], root_bucket_name, 'cpelikan/tools/' + '%s' % output_file_list[i])
         i = i + 1
     
 
 if __name__== "__main__":
     inputFileList = sys.argv[1].strip().split(',')
     outputFileList = sys.argv[2].strip().split(',')
-    userName = sys.argv[3]
-    functionToRunScriptOnDocker(inputFileList, outputFileList, userName)
+    # userName = sys.argv[3]
+    run_docker_script(inputFileList, outputFileList)

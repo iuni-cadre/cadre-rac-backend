@@ -1,17 +1,22 @@
 import sys
 
-def lineCount(inputFileList, outputFileList):
-    # filepath = input('Enter file path: ')
-    i = 0
-    for files in inputFileList:
+
+def line_count(argv):
+    input_files = []
+    arg_range = range(3, len(argv))
+    for i in arg_range:
+        input = argv[i]
+        input_files.append(input)
+    output_count = 0
+    for files in input_files:
         count = len(open(files, 'rb').readlines())
-        file = open('/tmp/%s' % outputFileList[i], 'w')
+        output_file_name = '/tmp/output' + str(output_count)
+        file = open(output_file_name, 'w')
         file.write("Number of lines in the file: " + str(count))
         file.close()
-        i += 1
+        output_count += 1
 
 
-if __name__== "__main__":
-    inputFileList = sys.argv[2].strip().split(',')
-    outputFileList = sys.argv[3].strip().split(',')
-    lineCount(inputFileList, outputFileList)
+if __name__ == "__main__":
+    argv = sys.argv
+    line_count(argv)
