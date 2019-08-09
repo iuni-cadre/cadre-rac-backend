@@ -13,7 +13,7 @@ sys.path.append(cadre_rac)
 
 import util.config_reader
 
-def run_docker_script(input_file_list, output_file_list):
+def run_docker_script(input_file_list, output_file_list, package_id):
     client = docker.DockerClient(base_url='tcp://127.0.0.1:2375')
 
     # We are building the docker image from the dockerfile here
@@ -25,18 +25,24 @@ def run_docker_script(input_file_list, output_file_list):
     inputString = ",".join(input_file_list)
     print(inputString)
 
+    # shared_volume = os.getcwd()
     shared_volume = '/tmp'
 
     print(output_file_list)
     outputString = ",".join(output_file_list)
     print(outputString)
-    command_list = ["python3", "script1.py"]
+    command_list = ["python3", "line_count.py"]
+    shared_inputs = []
     for inputFile in input_file_list:
         file_name = ntpath.basename(inputFile)
         file_name_for_image = shared_volume + '/' + file_name
         copyfile(inputFile, file_name_for_image)
-        command_list.append(file_name_for_image)
-
+        shared_inputs.append(file_name_for_image)
+    shared_inputs_as_string = ",".join(shared_inputs)
+    output_names = ",".join(output_file_list)
+    command_list.append(shared_inputs_as_string)
+    command_list.append(output_names)
+    command_list.append(package_id)
     print(command_list)
 
     container = client.containers.run('sample_test',
@@ -74,13 +80,14 @@ def run_docker_script(input_file_list, output_file_list):
     s3_location = 's3://' + bucket_job_id
     print(s3_location)
     i = 0
-    for files in output_file_list:
-        s3_client.meta.client.upload_file('/tmp/%s' % output_file_list[i], root_bucket_name, 'cpelikan/tools/' + '%s' % output_file_list[i])
-        i = i + 1
+    # for files in output_file_list:
+    #     s3_client.meta.client.upload_file('/tmp/%s' % output_file_list[i], root_bucket_name, 'cpelikan/tools/' + '%s' % output_file_list[i])
+    #     i = i + 1
     
 
 if __name__== "__main__":
     inputFileList = sys.argv[1].strip().split(',')
     outputFileList = sys.argv[2].strip().split(',')
+    package_id = sys.argv[3]
     # userName = sys.argv[3]
-    run_docker_script(inputFileList, outputFileList)
+    run_docker_script(inputFileList, outputFileList, package_id)
