@@ -25,7 +25,7 @@ def run_docker_script(input_file_list, output_file_list):
     inputString = ",".join(input_file_list)
     print(inputString)
 
-    shared_volume = '/tmp'
+    shared_volume = '/home/aditya/user_package_run_dir'
 
     print(output_file_list)
     outputString = ",".join(output_file_list)
@@ -41,7 +41,7 @@ def run_docker_script(input_file_list, output_file_list):
 
     container = client.containers.run('sample_test',
                                       detach=True,
-                                      volumes={shared_volume: {'bind':'/tmp/', 'mode':'rw'}},
+                                      volumes={shared_volume: {'bind':'/home/aditya/user_package_run_dir', 'mode':'rw'}},
                                       command=command_list,
                                       remove=True)
     
@@ -75,7 +75,7 @@ def run_docker_script(input_file_list, output_file_list):
     print(s3_location)
     i = 0
     for files in output_file_list:
-        s3_client.meta.client.upload_file('/tmp/%s' % output_file_list[i], root_bucket_name, 'cpelikan/tools/' + '%s' % output_file_list[i])
+        s3_client.meta.client.upload_file('/home/aditya/user_package_run_dir/%s' % output_file_list[i], root_bucket_name, 'cpelikan/tools/' + '%s' % output_file_list[i])
         i = i + 1
     
 
