@@ -13,6 +13,7 @@ sys.path.append(cadre_rac)
 
 import util.config_reader
 
+
 def run_docker_script(input_file_list, output_file_list, package_id):
     client = docker.DockerClient(base_url='tcp://127.0.0.1:2375')
 
@@ -26,7 +27,7 @@ def run_docker_script(input_file_list, output_file_list, package_id):
     print(inputString)
 
     # shared_volume = os.getcwd()
-    shared_volume = '/tmp'
+    shared_volume = os.getcwd()
 
     print(output_file_list)
     outputString = ",".join(output_file_list)
@@ -42,12 +43,12 @@ def run_docker_script(input_file_list, output_file_list, package_id):
     output_names = ",".join(output_file_list)
     command_list.append(shared_inputs_as_string)
     command_list.append(output_names)
-    command_list.append(package_id)
+    command_list.append(shared_volume)
     print(command_list)
 
     container = client.containers.run('sample_test',
                                       detach=True,
-                                      volumes={shared_volume: {'bind':'/tmp/', 'mode':'rw'}},
+                                      volumes={shared_volume: {'bind':shared_volume, 'mode':'rw'}},
                                       command=command_list,
                                       remove=True)
     
