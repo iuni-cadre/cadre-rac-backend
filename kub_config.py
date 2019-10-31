@@ -1,18 +1,40 @@
-from __future__ import print_function
-import time
-import kubernetes.client
-from kubernetes.client.rest import ApiException
-from pprint import pprint
+from kubernetes import client, config
 
-# Configure API key authorization: BearerToken
-kubernetes.client.configuration.api_key['authorization'] = ''
-# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
-# kubernetes.client.configuration.api_key_prefix['authorization'] = 'Bearer'
-# create an instance of the API class
-api_instance = kubernetes.client.AdmissionregistrationApi()
 
-try:
-    api_response = api_instance.get_api_group()
-    pprint(api_response)
-except ApiException as e:
-    print("Exception when calling AdmissionregistrationApi->get_api_group: %s\n" % e)
+def main():
+    # Define the barer token we are going to use to authenticate.
+    # See here to create the token:
+    # https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/
+    aToken = "<token>"
+
+    # Create a configuration object
+    aConfiguration = client.Configuration()
+
+    # Specify the endpoint of your Kube cluster
+    aConfiguration.host = "https://XXX.XXX.XXX.XXX:443"
+
+    # Security part.
+    # In this simple example we are not going to verify the SSL certificate of
+    # the remote cluster (for simplicity reason)
+    aConfiguration.verify_ssl = False
+    # Nevertheless if you want to do it you can with these 2 parameters
+    # configuration.verify_ssl=True
+    # ssl_ca_cert is the filepath to the file that contains the certificate.
+    # configuration.ssl_ca_cert="certificate"
+
+    aConfiguration.api_key = {"authorization": "Bearer " + aToken}
+
+    # Create a ApiClient with our config
+    aApiClient = client.ApiClient(aConfiguration)
+
+    # Do calls
+    v1 = client.CoreV1Api(aApiClient)
+    print("Listing pods with their IPs:")
+    ret = v1.list_pod_for_all_namespaces(watch=False)
+    for i in ret.items:
+        print("%s\t%s\t%s" %
+              (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
+
+
+if __name__ == '__main__':
+    main()
