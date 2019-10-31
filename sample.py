@@ -15,7 +15,7 @@ import util.config_reader
 
 
 def run_docker_script(input_file_list, output_file_list, package_id):
-    client = docker.DockerClient(base_url='tcp://127.0.0.1:2375')
+    client = docker.DockerClient(base_url='unix://var/run/docker.sock')
 
     # We are building the docker image from the dockerfile here
     image = client.images.build(path='%s' % util.config_reader.get_docker_path(), tag='sample_test', forcerm=True)
@@ -28,6 +28,9 @@ def run_docker_script(input_file_list, output_file_list, package_id):
 
     # shared_volume = os.getcwd()
     shared_volume = os.getcwd()
+    output_dir = shared_volume + '/output'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     print(output_file_list)
     outputString = ",".join(output_file_list)
@@ -36,14 +39,14 @@ def run_docker_script(input_file_list, output_file_list, package_id):
     shared_inputs = []
     for inputFile in input_file_list:
         file_name = ntpath.basename(inputFile)
-        file_name_for_image = shared_volume + '/' + file_name
+        file_name_for_image = shared_volume + '/input/' + file_name
         copyfile(inputFile, file_name_for_image)
         shared_inputs.append(file_name_for_image)
     shared_inputs_as_string = ",".join(shared_inputs)
     output_names = ",".join(output_file_list)
     command_list.append(shared_inputs_as_string)
     command_list.append(output_names)
-    command_list.append(shared_volume)
+    command_list.append(output_dir)
     print(command_list)
 
     container = client.containers.run('sample_test',
