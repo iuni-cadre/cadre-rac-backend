@@ -31,7 +31,7 @@ def id_generator(size=12, chars=string.ascii_lowercase + string.digits):
 
 def kube_create_job_object(name,
                            container_image,
-                           namespace="default",
+                           namespace="jhub",
                            container_name="jobcontainer",
                            env_vars={},
                            input_file_list={},
@@ -75,7 +75,7 @@ def kube_create_job_object(name,
     for env_name, env_value in env_vars.items():
         env_list.append(client.V1EnvVar(name=env_name, value=env_value))
 
-    shared_volume = '/home/chathuri/mounts'
+    shared_volume = '/home/ubuntu/efs/home/cadre-query-results/chathuri'
     shared_volume_in_pod = '/data'
     # input_dir = shared_volume + '/input'
     # if not os.path.exists(input_dir):
@@ -107,17 +107,17 @@ def kube_create_job_object(name,
     pod = client.V1Pod()
     pod.metadata = client.V1ObjectMeta(name="line-count")
     hostpathvolumesource = client.V1HostPathVolumeSource(path=shared_volume, type='DirectoryOrCreate')
-    volume_spec = client.V1PersistentVolumeSpec(storage_class_name='manual', volume_mode='Filesystem', access_modes=['ReadWriteMany'], host_path=hostpathvolumesource, capacity={'storage': '2Gi'})
-    pv_meta = client.V1ObjectMeta(name='task-pv-volume')
+    volume_spec = client.V1PersistentVolumeSpec(storage_class_name='', volume_mode='Filesystem', access_modes=['ReadWriteMany'], host_path=hostpathvolumesource, capacity={'storage': '2Gi'})
+    pv_meta = client.V1ObjectMeta(name='cadre-query-results')
     persistent_volume = client.V1PersistentVolume(metadata=pv_meta, api_version='v1', kind='PersistentVolume', spec=volume_spec)
     resource_requirements = client.V1ResourceRequirements(limits={'cpu': 2, 'memory': '80Mi', 'storage': '2Gi'}, requests={'cpu': 1, 'memory': '40Mi','storage': '1Gi'})
-    claim_spec = client.V1PersistentVolumeClaimSpec(storage_class_name='manual', access_modes=['ReadWriteMany'], resources=resource_requirements)
-    pvc_meta = client.V1ObjectMeta(name='task-pv-claim')
+    claim_spec = client.V1PersistentVolumeClaimSpec(storage_class_name='', access_modes=['ReadWriteMany'], resources=resource_requirements)
+    pvc_meta = client.V1ObjectMeta(name='efs')
     persistent_volume_claim = client.V1PersistentVolumeClaim(api_version='v1', metadata=pvc_meta, kind='PersistentVolumeClaim', spec=claim_spec)
-    claim_volume_source = client.V1PersistentVolumeClaimVolumeSource(claim_name='task-pv-claim')
-    volume_mounts = [client.V1VolumeMount(mount_path=shared_volume_in_pod, name='task-pv-storage')]
-    api_instance.create_persistent_volume(body=persistent_volume, pretty=True)
-    api_instance.create_namespaced_persistent_volume_claim(body=persistent_volume_claim, namespace='default', pretty=True)
+    claim_volume_source = client.V1PersistentVolumeClaimVolumeSource(claim_name='efs')
+    volume_mounts = [client.V1VolumeMount(mount_path=shared_volume_in_pod, name='cadre-query-results',sub_path='home/cadre-query-results/chathuri')]
+    #api_instance.create_persistent_volume(body=persistent_volume, pretty=True)
+    #api_instance.create_namespaced_persistent_volume_claim(body=persistent_volume_claim, namespace='default', pretty=True)
     # volume = client.V1Volume(name='test-volume', empty_dir={})
     # client.V1PersistentVolume()
     # volume_mount = client.V1VolumeMount(mount_path=shared_volume, name=volume.name)
@@ -131,7 +131,7 @@ def kube_create_job_object(name,
 
     container.volume_mounts = volume_mounts
     spec = client.V1PodSpec(containers=[container], restart_policy='Never')
-    volume = client.V1Volume(name='task-pv-storage', persistent_volume_claim=claim_volume_source)
+    volume = client.V1Volume(name='cadre-query-results', persistent_volume_claim=claim_volume_source)
     spec.volumes = [volume]
     # And finaly we can create our V1JobSpec!
     pod.spec = spec
@@ -146,7 +146,7 @@ def run_docker_script(input_file_list, output_file_list):
     client.images.build(path='%s' % util.config_reader.get_docker_path(), tag='line_count')
     image = client.images.get('line_count')
     image.tag('chathuri/cadre-packages', tag='latest')
-    auth_config_payload = {'username': 'chathuri', 'password': ''}
+    auth_config_payload = {'username': 'chathuri', 'password': 'kaba11agoda'}
     for line in client.images.push('chathuri/cadre-packages', stream=True, decode=True, auth_config=auth_config_payload):
         print(line)
     # client.images.push('chathuri/cadre-packages', 'latest', stream=True, decode=True, auth_config=auth_config_payload)
@@ -154,9 +154,9 @@ def run_docker_script(input_file_list, output_file_list):
     image_name = 'chathuri/cadre-packages'
     job_name = id_generator()
 
-    body = kube_create_job_object(job_name, image_name, env_vars={"DOCKER_TLS_VERIFY": "1", "DOCKER_HOST":"tcp://192.168.99.100:2376", "DOCKER_CERT_PATH":"/home/chathuri/.minikube/certs"}, input_file_list=input_file_list, output_file_list=output_file_list)
+    body = kube_create_job_object(job_name, image_name, env_vars={"VAR": "TESTING"}, input_file_list=input_file_list, output_file_list=output_file_list)
     try:
-        api_response = api_instance.create_namespaced_pod("default", body, pretty=True)
+        api_response = api_instance.create_namespaced_pod("jhub", body, pretty=True)
         exec_command = ['/bin/sh']
         # resp = stream(api_instance.connect_get_namespaced_pod_exec, 'line-count', 'default',
         #               command=exec_command,
